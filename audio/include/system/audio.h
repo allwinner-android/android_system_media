@@ -613,6 +613,8 @@ typedef enum {
     AUDIO_MODE_RINGTONE         = 1,
     AUDIO_MODE_IN_CALL          = 2,
     AUDIO_MODE_IN_COMMUNICATION = 3,
+    AUDIO_MODE_MODE_FACTORY_TEST = 4,
+    AUDIO_MODE_FM		= 5,
 
     AUDIO_MODE_CNT,
     AUDIO_MODE_MAX              = AUDIO_MODE_CNT - 1,
@@ -737,6 +739,8 @@ enum {
     AUDIO_DEVICE_IN_IP                    = AUDIO_DEVICE_BIT_IN | 0x80000,
     /* audio bus implemented by the audio system (e.g an MOST stereo channel) */
     AUDIO_DEVICE_IN_BUS                   = AUDIO_DEVICE_BIT_IN | 0x100000,
+	AUDIO_DEVICE_IN_AF                    = AUDIO_DEVICE_BIT_IN | 0x1000000,
+    AUDIO_DEVICE_IN_PT71600_REMOTE        = AUDIO_DEVICE_BIT_IN | 0x2000000,
     AUDIO_DEVICE_IN_DEFAULT               = AUDIO_DEVICE_BIT_IN | AUDIO_DEVICE_BIT_DEFAULT,
 
     AUDIO_DEVICE_IN_ALL     = (AUDIO_DEVICE_IN_COMMUNICATION |
@@ -760,6 +764,8 @@ enum {
                                AUDIO_DEVICE_IN_LOOPBACK |
                                AUDIO_DEVICE_IN_IP |
                                AUDIO_DEVICE_IN_BUS |
+							   AUDIO_DEVICE_IN_AF |
+                               AUDIO_DEVICE_IN_PT71600_REMOTE |
                                AUDIO_DEVICE_IN_DEFAULT),
     AUDIO_DEVICE_IN_ALL_SCO = AUDIO_DEVICE_IN_BLUETOOTH_SCO_HEADSET,
     AUDIO_DEVICE_IN_ALL_USB  = (AUDIO_DEVICE_IN_USB_ACCESSORY |
@@ -1456,12 +1462,23 @@ static inline audio_format_t audio_get_main_format(audio_format_t format)
     return (audio_format_t)(format & AUDIO_FORMAT_MAIN_MASK);
 }
 
+static inline bool audio_format_is_iec61937(audio_format_t format)
+{
+    return ((format & AUDIO_FORMAT_MAIN_MASK) == AUDIO_FORMAT_AC3 || 
+            (format & AUDIO_FORMAT_MAIN_MASK) == AUDIO_FORMAT_E_AC3 || 
+            (format & AUDIO_FORMAT_MAIN_MASK) == AUDIO_FORMAT_DTS ||
+            (format & AUDIO_FORMAT_MAIN_MASK) == AUDIO_FORMAT_DTS_HD ||
+            (format & AUDIO_FORMAT_MAIN_MASK) == AUDIO_FORMAT_IEC61937);
+}
+
 /**
  * Is the data plain PCM samples that can be scaled and mixed?
  */
 static inline bool audio_is_linear_pcm(audio_format_t format)
 {
-    return (audio_get_main_format(format) == AUDIO_FORMAT_PCM);
+    //Modified by Chengkan
+    //For ac3 and e-ac3 has been packed through over PCM. Details for iec61937
+    return (audio_get_main_format(format) == AUDIO_FORMAT_PCM || audio_format_is_iec61937(format));
 }
 
 /**
@@ -1478,7 +1495,7 @@ static inline bool audio_has_proportional_frames(audio_format_t format)
 {
     audio_format_t mainFormat = audio_get_main_format(format);
     return (mainFormat == AUDIO_FORMAT_PCM
-            || mainFormat == AUDIO_FORMAT_IEC61937);
+            || mainFormat == AUDIO_FORMAT_IEC61937 || audio_format_is_iec61937(format));
 }
 
 static inline size_t audio_bytes_per_sample(audio_format_t format)
@@ -1495,6 +1512,13 @@ static inline size_t audio_bytes_per_sample(audio_format_t format)
         break;
     case AUDIO_FORMAT_PCM_16_BIT:
     case AUDIO_FORMAT_IEC61937:
+    //Added by Chengkan start
+    //For ac3 and e-ac3 has been packed through over PCM. Details for iec61937
+    case AUDIO_FORMAT_AC3:
+    case AUDIO_FORMAT_E_AC3:
+    case AUDIO_FORMAT_DTS:
+    case AUDIO_FORMAT_DTS_HD:
+    //Added by Chengkan end
         size = sizeof(int16_t);
         break;
     case AUDIO_FORMAT_PCM_8_BIT:
