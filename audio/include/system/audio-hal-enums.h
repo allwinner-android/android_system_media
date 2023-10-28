@@ -672,6 +672,7 @@ inline bool audio_gain_mode_from_string(const char* s, audio_gain_mode_t* t) {
     V(AUDIO_SOURCE_REMOTE_SUBMIX, 8) \
     V(AUDIO_SOURCE_UNPROCESSED, 9) \
     V(AUDIO_SOURCE_VOICE_PERFORMANCE, 10) \
+    V(AUDIO_SOURCE_HDMI_IN, 11) \
     V(AUDIO_SOURCE_ECHO_REFERENCE, 1997) \
     V(AUDIO_SOURCE_FM_TUNER, 1998) \
     V(AUDIO_SOURCE_HOTWORD, 1999)

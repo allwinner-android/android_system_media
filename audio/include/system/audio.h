@@ -77,8 +77,10 @@ typedef enum {
     AUDIO_MODE_IN_CALL = HAL_AUDIO_MODE_IN_CALL,
     AUDIO_MODE_IN_COMMUNICATION = HAL_AUDIO_MODE_IN_COMMUNICATION,
     AUDIO_MODE_CALL_SCREEN = HAL_AUDIO_MODE_CALL_SCREEN,
+    AUDIO_MODE_FM = HAL_AUDIO_MODE_FM,
+    AUDIO_MODE_MODE_FACTORY_TEST = HAL_AUDIO_MODE_MODE_FACTORY_TEST,
 #ifndef AUDIO_NO_SYSTEM_DECLARATIONS
-    AUDIO_MODE_MAX            = AUDIO_MODE_CALL_SCREEN,
+    AUDIO_MODE_MAX            = AUDIO_MODE_MODE_FACTORY_TEST,
     AUDIO_MODE_CNT            = AUDIO_MODE_MAX + 1,
 #endif // AUDIO_NO_SYSTEM_DECLARATIONS
 } audio_mode_t;
@@ -1840,12 +1842,20 @@ static inline audio_format_t audio_get_main_format(audio_format_t format)
     return (audio_format_t)(format & AUDIO_FORMAT_MAIN_MASK);
 }
 
+static inline bool audio_format_is_iec61937(audio_format_t format)
+{
+    return ((format & AUDIO_FORMAT_MAIN_MASK) == AUDIO_FORMAT_AC3 ||
+            (format & AUDIO_FORMAT_MAIN_MASK) == AUDIO_FORMAT_E_AC3 ||
+            (format & AUDIO_FORMAT_MAIN_MASK) == AUDIO_FORMAT_DTS ||
+            (format & AUDIO_FORMAT_MAIN_MASK) == AUDIO_FORMAT_DTS_HD ||
+            (format & AUDIO_FORMAT_MAIN_MASK) == AUDIO_FORMAT_IEC61937);
+}
 /**
  * Is the data plain PCM samples that can be scaled and mixed?
  */
 static inline bool audio_is_linear_pcm(audio_format_t format)
 {
-    return (audio_get_main_format(format) == AUDIO_FORMAT_PCM);
+    return (audio_get_main_format(format) == AUDIO_FORMAT_PCM || audio_format_is_iec61937(format));
 }
 
 /**
@@ -1862,7 +1872,7 @@ static inline bool audio_has_proportional_frames(audio_format_t format)
 {
     audio_format_t mainFormat = audio_get_main_format(format);
     return (mainFormat == AUDIO_FORMAT_PCM
-            || mainFormat == AUDIO_FORMAT_IEC61937);
+            || mainFormat == AUDIO_FORMAT_IEC61937 || audio_format_is_iec61937(format));
 }
 
 static inline size_t audio_bytes_per_sample(audio_format_t format)
@@ -1879,6 +1889,11 @@ static inline size_t audio_bytes_per_sample(audio_format_t format)
         break;
     case AUDIO_FORMAT_PCM_16_BIT:
     case AUDIO_FORMAT_IEC61937:
+        //For ac3 and e-ac3 has been packed through over PCM. Details for iec61937
+        case AUDIO_FORMAT_AC3:
+        case AUDIO_FORMAT_E_AC3:
+        case AUDIO_FORMAT_DTS:
+        case AUDIO_FORMAT_DTS_HD:
         size = sizeof(int16_t);
         break;
     case AUDIO_FORMAT_PCM_8_BIT:
